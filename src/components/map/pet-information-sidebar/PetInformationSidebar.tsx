@@ -8,6 +8,8 @@ interface PetInformationSidebarProps {
     pet: Pet | null;
 }
 
+const API_URL = "http://localhost:3000";
+
 const PetInformationSidebar: React.FC<PetInformationSidebarProps> = ({
     isOpen,
     onClose,
@@ -23,17 +25,19 @@ const PetInformationSidebar: React.FC<PetInformationSidebarProps> = ({
     if (!pet) return null;
 
     const formatDate = (dateString: string) => {
+        console.log("Formatting date:", dateString);
         const date = new Date(dateString);
         return date.toLocaleDateString("es-ES", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
+            timeZone: "UTC",
         });
     };
 
     const getImageUrl = (path: string) => {
         // Construir la URL completa
-        return `http://localhost:3000/${path}`;
+        return `${API_URL}/${path}`;
     };
 
     const hasMultipleImages = pet.fotos_perdida && pet.fotos_perdida.length > 1;

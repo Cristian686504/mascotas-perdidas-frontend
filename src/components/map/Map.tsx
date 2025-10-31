@@ -45,7 +45,13 @@ const Map: React.FC = () => {
         setIsSidebarOpen(true);
     };
 
-    const { mapContainer, isAddingMarker, setIsAddingMarker, removeTempMarker } = useMapbox({
+    const handleCloseSidebar = () => {
+        setIsSidebarOpen(false);
+        setSelectedPet(null);
+        clearSelectedMarker();
+    };
+
+    const { mapContainer, isAddingMarker, setIsAddingMarker, removeTempMarker, clearSelectedMarker  } = useMapbox({
         token,
         center: [-58.08040986151055, -32.3169429908807],
         zoom: 14,
@@ -85,7 +91,7 @@ const Map: React.FC = () => {
 
             <PetInformationSidebar
                 isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
+                onClose={handleCloseSidebar}
                 pet={selectedPet}
             />
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { Pet } from "../api/mascota";
+import { clear } from "console";
 
 interface UseMapboxOptions {
     token: string;
@@ -120,5 +121,13 @@ export function useMapbox({
         });
     }, [map, pets, onPetClick, selectedMarker]);
 
-    return { mapContainer, map, isAddingMarker, setIsAddingMarker, markerCoords, removeTempMarker };
+    const clearSelectedMarker = () => {
+        if (selectedMarker) {
+            selectedMarker.classList.remove("marker-selected");
+            setSelectedMarker(null);
+        }
+    };
+
+
+    return { mapContainer, map, isAddingMarker, setIsAddingMarker, markerCoords, removeTempMarker, clearSelectedMarker };
 }

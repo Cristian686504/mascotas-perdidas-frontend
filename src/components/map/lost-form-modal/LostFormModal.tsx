@@ -37,6 +37,7 @@ const LostFormModal: React.FC<LostFormModalProps> = ({
             newPet.append('tipo_mascota', formData.petType);
             newPet.append('contacto', formData.contact);
             newPet.append('ubicacion_perdida', formData.lossLocation);
+            console.log("Loss Date:", formData.lossDate)
             newPet.append('fecha_perdida', formData.lossDate);
             newPet.append('descripcion', formData.description);
             newPet.append('coordenadas', JSON.stringify(coordinates));
