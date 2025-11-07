@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+// @ts-ignore
 import "./LostFormModal.css";
 import { createPet } from "../../../api/mascota";
 
@@ -27,6 +28,23 @@ const LostFormModal: React.FC<LostFormModalProps> = ({
     const [photos, setPhotos] = useState<File[]>([]);
     const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
 
+    const resetForm = () => {
+        setFormData({
+            petName: "",
+            petType: "",
+            contact: "",
+            lossLocation: "",
+            lossDate: "",
+            description: "",
+        });
+        setPhotos([]);
+        setPhotoPreviews([]);
+        const fileInput = document.getElementById('photos') as HTMLInputElement;
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -37,7 +55,6 @@ const LostFormModal: React.FC<LostFormModalProps> = ({
             newPet.append('tipo_mascota', formData.petType);
             newPet.append('contacto', formData.contact);
             newPet.append('ubicacion_perdida', formData.lossLocation);
-            console.log("Loss Date:", formData.lossDate)
             newPet.append('fecha_perdida', formData.lossDate);
             newPet.append('descripcion', formData.description);
             newPet.append('coordenadas', JSON.stringify(coordinates));
@@ -50,6 +67,7 @@ const LostFormModal: React.FC<LostFormModalProps> = ({
             const response = await createPet(newPet);
 
             alert("¡Mascota reportada con éxito!");
+            resetForm();
             onSuccess();
         } catch (error) {
             console.error("Error al crear la mascota:", error);
@@ -91,6 +109,12 @@ const LostFormModal: React.FC<LostFormModalProps> = ({
         setPhotos(photos.filter((_, i) => i !== index));
         setPhotoPreviews(photoPreviews.filter((_, i) => i !== index));
     };
+
+    useEffect(() => {
+        if (!isOpen) {
+            resetForm();
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
