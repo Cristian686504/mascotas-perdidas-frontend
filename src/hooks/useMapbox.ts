@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
-import { Pet } from "../api/mascota";
-import { clear } from "console";
+import { Pet, FoundPet } from "../api/mascota";
 
 interface UseMapboxOptions {
     token: string;
@@ -10,7 +9,9 @@ interface UseMapboxOptions {
     style?: string;
     onMarkerPlaced?: (coords: [number, number]) => void;
     pets?: Pet[];
+    foundPets?: FoundPet[];
     onPetClick?: (pet: Pet) => void;
+    onFoundPetClick?: (foundPet: FoundPet) => void;
 }
 
 export function useMapbox({
@@ -20,7 +21,9 @@ export function useMapbox({
     style = "mapbox://styles/mapbox/streets-v12",
     onMarkerPlaced,
     pets = [],
+    foundPets = [],
     onPetClick,
+    onFoundPetClick,
 }: UseMapboxOptions) {
     const mapContainer = useRef<HTMLDivElement | null>(null);
     const map = useRef<mapboxgl.Map | null>(null);
@@ -28,6 +31,8 @@ export function useMapbox({
     const [markerCoords, setMarkerCoords] = useState<[number, number] | null>(null);
     const [tempMarker, setTempMarker] = useState<mapboxgl.Marker | null>(null);
     const [selectedMarker, setSelectedMarker] = useState<HTMLElement | null>(null);
+    const petMarkers = useRef<mapboxgl.Marker[]>([]);
+    const foundPetMarkers = useRef<mapboxgl.Marker[]>([]);
 
     useEffect(() => {
         if (!mapContainer.current) return;
@@ -93,7 +98,10 @@ export function useMapbox({
     }, [isAddingMarker]);
 
     useEffect(() => {
-        if (!map.current || !pets || pets.length === 0) return;
+        if (!map.current) return;
+
+        petMarkers.current.forEach(marker => marker.remove());
+        petMarkers.current = [];
 
         pets.forEach((pet) => {
             const marker = new mapboxgl.Marker({
@@ -102,15 +110,18 @@ export function useMapbox({
                 .setLngLat(pet.coordenadas)
                 .addTo(map.current!);
 
-            const markerElement = marker.getElement();
+            petMarkers.current.push(marker);
 
-            markerElement.addEventListener('click', () => {
-                // Remover la clase del marker previamente seleccionado
+            const markerElement = marker.getElement();
+            markerElement.style.cursor = "pointer";
+
+            markerElement.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
                 if (selectedMarker) {
                     selectedMarker.classList.remove('marker-selected');
                 }
 
-                // Agregar la clase al marker actual
                 markerElement.classList.add('marker-selected');
                 setSelectedMarker(markerElement);
 
@@ -119,7 +130,42 @@ export function useMapbox({
                 }
             });
         });
-    }, [map, pets, onPetClick, selectedMarker]);
+    }, [pets, onPetClick]);
+
+    useEffect(() => {
+        if (!map.current) return;
+
+        foundPetMarkers.current.forEach(marker => marker.remove());
+        foundPetMarkers.current = [];
+
+        foundPets.forEach((foundPet) => {
+            const marker = new mapboxgl.Marker({
+                color: "#28a745",
+            })
+                .setLngLat(foundPet.coordenadas)
+                .addTo(map.current!);
+
+            foundPetMarkers.current.push(marker);
+
+            const markerElement = marker.getElement();
+            markerElement.style.cursor = "pointer";
+
+            markerElement.addEventListener('click', (e) => {
+                e.stopPropagation();
+
+                if (selectedMarker) {
+                    selectedMarker.classList.remove('marker-selected');
+                }
+
+                markerElement.classList.add('marker-selected');
+                setSelectedMarker(markerElement);
+
+                if (onFoundPetClick) {
+                    onFoundPetClick(foundPet);
+                }
+            });
+        });
+    }, [foundPets, onFoundPetClick]);
 
     const clearSelectedMarker = () => {
         if (selectedMarker) {
@@ -128,6 +174,27 @@ export function useMapbox({
         }
     };
 
+    const flyToLocation = (coordinates: [number, number], zoomLevel: number = 16) => {
+        if (map.current) {
+            map.current.flyTo({
+                center: coordinates,
+                zoom: zoomLevel,
+                speed: 1.2,
+                curve: 1.42,
+                easing: (t) => t,
+                essential: true
+            });
+        }
+    };
 
-    return { mapContainer, map, isAddingMarker, setIsAddingMarker, markerCoords, removeTempMarker, clearSelectedMarker };
+    return { 
+        mapContainer, 
+        map, 
+        isAddingMarker, 
+        setIsAddingMarker, 
+        markerCoords, 
+        removeTempMarker, 
+        clearSelectedMarker,
+        flyToLocation
+    };
 }

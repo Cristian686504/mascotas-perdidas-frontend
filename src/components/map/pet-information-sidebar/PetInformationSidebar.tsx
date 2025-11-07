@@ -1,42 +1,69 @@
 import React, { useState, useEffect } from "react";
-import { Pet } from "../../../api/mascota";
+import { Pet, FoundPet, getFoundPetById } from "../../../api/mascota";
+// @ts-ignore
 import "./PetInformationSidebar.css";
 
 interface PetInformationSidebarProps {
     isOpen: boolean;
     onClose: () => void;
     pet: Pet | null;
+    onFoundThisPet?: () => void;
+    onMatchClick?: (foundPetId: string, coordinates: [number, number]) => void;
 }
 
-const API_URL = "http://localhost:3000";
+const API_URL = process.env.REACT_APP_API_URL || "";
 
 const PetInformationSidebar: React.FC<PetInformationSidebarProps> = ({
     isOpen,
     onClose,
     pet,
+    onFoundThisPet,
+    onMatchClick,
 }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [possibleMatches, setPossibleMatches] = useState<FoundPet[]>([]);
+    const [loadingMatches, setLoadingMatches] = useState(false);
 
-    // Reset image index when pet changes - MOVER ANTES DEL RETURN
     useEffect(() => {
         setCurrentImageIndex(0);
     }, [pet?._id]);
 
+    useEffect(() => {
+        const fetchPossibleMatches = async () => {
+            if (pet?.posibles_coincidencias && pet.posibles_coincidencias.length > 0) {
+                setLoadingMatches(true);
+                try {
+                    const matches = await Promise.all(
+                        pet.posibles_coincidencias.map(id => getFoundPetById(id))
+                    );
+                    setPossibleMatches(matches.map(response => response.data.data));
+                } catch (error) {
+                    console.error("Error loading possible matches:", error);
+                } finally {
+                    setLoadingMatches(false);
+                }
+            } else {
+                setPossibleMatches([]);
+            }
+        };
+
+        if (isOpen && pet) {
+            fetchPossibleMatches();
+        }
+    }, [pet, isOpen]);
+
     if (!pet) return null;
 
     const formatDate = (dateString: string) => {
-        console.log("Formatting date:", dateString);
         const date = new Date(dateString);
         return date.toLocaleDateString("es-ES", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
-            timeZone: "UTC",
         });
     };
 
     const getImageUrl = (path: string) => {
-        // Construir la URL completa
         return `${API_URL}/${path}`;
     };
 
@@ -109,6 +136,12 @@ const PetInformationSidebar: React.FC<PetInformationSidebarProps> = ({
 
                     <h2 className="pet-name">{pet.nombre}</h2>
 
+                    {onFoundThisPet && (
+                        <button className="found-this-pet-button" onClick={onFoundThisPet}>
+                            ¡Encontré esta mascota!
+                        </button>
+                    )}
+
                     <div className="pet-details">
                         <div className="detail-item">
                             <span className="detail-label">Tipo:</span>
@@ -137,6 +170,42 @@ const PetInformationSidebar: React.FC<PetInformationSidebarProps> = ({
                             </div>
                         )}
                     </div>
+
+                    {possibleMatches.length > 0 && (
+                        <div className="possible-matches">
+                            <h3 className="matches-title">Posibles Coincidencias ({possibleMatches.length})</h3>
+                            <p className="matches-subtitle">Personas que reportaron haber encontrado esta mascota:</p>
+                            {loadingMatches ? (
+                                <p>Cargando...</p>
+                            ) : (
+                                <div className="matches-list">
+                                    {possibleMatches.map((match) => (
+                                        <div 
+                                            key={match._id} 
+                                            className="match-card clickable"
+                                            onClick={() => onMatchClick?.(match._id, match.coordenadas)}
+                                        >
+                                            {match.foto_encontrada && (
+                                                <img 
+                                                    src={getImageUrl(match.foto_encontrada)} 
+                                                    alt="Mascota encontrada"
+                                                    className="match-photo"
+                                                />
+                                            )}
+                                            <div className="match-info">
+                                                <p><strong>Encontrada:</strong> {formatDate(match.fecha_encontrada)}</p>
+                                                <p><strong>Ubicación:</strong> {match.ubicacion_encontrada}</p>
+                                                <p><strong>Contacto:</strong> {match.contacto}</p>
+                                                {match.descripcion && (
+                                                    <p><strong>Info:</strong> {match.descripcion}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </>
